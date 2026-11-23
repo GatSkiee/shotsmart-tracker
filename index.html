@@ -1,0 +1,257 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SHOT SMART | Progress Tracker</title>
+
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    color: #222;
+    margin: 0;
+    padding: 20px;
+  }
+
+  .tracker {
+    max-width: 800px;
+    margin: auto;
+    padding: 25px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    background: #ffffff;
+  }
+
+  h2 {
+    text-align: center;
+  }
+
+  label {
+    display: block;
+    font-weight: bold;
+    margin-top: 15px;
+  }
+
+  select, input {
+    width: 100%;
+    padding: 12px;
+    margin-top: 8px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-sizing: border-box;
+    font-size: 16px;
+  }
+
+  button {
+    width: 100%;
+    padding: 14px;
+    background: #FFA500;
+    color: black;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 15px;
+  }
+
+  .accuracy {
+    text-align: center;
+    background: #f4f4f4;
+    padding: 20px;
+    margin-top: 20px;
+    border-radius: 8px;
+  }
+
+  #percentage {
+    font-size: 42px;
+    font-weight: bold;
+    color: #c57800;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+    font-size: 14px;
+  }
+
+  th, td {
+    padding: 10px;
+    border: 1px solid #ddd;
+    text-align: center;
+  }
+
+  th {
+    background: #222;
+    color: white;
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+  }
+
+  #status {
+    font-size: 14px;
+    text-align: center;
+  }
+</style>
+</head>
+
+<body>
+
+<div class="tracker">
+  <h2>SHOT SMART | PROGRESS TRACKER</h2>
+
+  <label for="level">Challenge Level</label>
+  <select id="level">
+    <option>Level 01: Rookie Shooter</option>
+    <option>Level 02: Mid-Range Master</option>
+    <option>Level 03: Three-Point Specialist</option>
+  </select>
+
+  <label for="date">Practice Date</label>
+  <input type="date" id="date">
+
+  <label for="shots">Shots Made Out of 10</label>
+  <select id="shots" onchange="calculate()">
+    <option value="0">0</option>
+    <option value="1">1</option>
+    <option value="2">2</option>
+    <option value="3">3</option>
+    <option value="4">4</option>
+    <option value="5">5</option>
+    <option value="6">6</option>
+    <option value="7">7</option>
+    <option value="8">8</option>
+    <option value="9">9</option>
+    <option value="10">10</option>
+  </select>
+
+  <div class="accuracy">
+    Shooting Accuracy
+    <div id="percentage">0%</div>
+  </div>
+
+  <button onclick="saveScore()">SAVE MY SCORE</button>
+  <p id="status" role="status"></p>
+
+  <h2>MY SHOOTING HISTORY</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Challenge</th>
+          <th>Score</th>
+          <th>Accuracy</th>
+        </tr>
+      </thead>
+      <tbody id="history"></tbody>
+    </table>
+  </div>
+
+  <button onclick="clearHistory()">CLEAR MY HISTORY</button>
+
+  <p style="font-size:13px;text-align:center;color:#666;">
+    Your scores are stored in your current browser.
+  </p>
+</div>
+
+<script>
+  const key = "shotsmart_records";
+  let records = [];
+
+  try {
+    records = JSON.parse(localStorage.getItem(key) || "[]");
+    if (!Array.isArray(records)) records = [];
+  } catch (e) {
+    records = [];
+  }
+
+  const today = new Date();
+
+  document.getElementById("date").value =
+    today.getFullYear() + "-" +
+    String(today.getMonth() + 1).padStart(2, "0") + "-" +
+    String(today.getDate()).padStart(2, "0");
+
+  function calculate() {
+    const shots = Number(document.getElementById("shots").value);
+    document.getElementById("percentage").textContent =
+      shots * 10 + "%";
+  }
+
+  function saveScore() {
+    const level = document.getElementById("level").value;
+    const date = document.getElementById("date").value;
+    const shots = Number(document.getElementById("shots").value);
+
+    if (!date) {
+      document.getElementById("status").textContent =
+        "Please select a practice date.";
+      return;
+    }
+
+    records.push({
+      date: date,
+      level: level,
+      shots: shots,
+      accuracy: shots * 10
+    });
+
+    storeRecords();
+    displayHistory();
+  }
+
+  function storeRecords() {
+    try {
+      localStorage.setItem(key, JSON.stringify(records));
+      document.getElementById("status").textContent =
+        "History saved in this browser.";
+      return true;
+    } catch (e) {
+      document.getElementById("status").textContent =
+        "Browser storage is unavailable. Results are temporary.";
+      return false;
+    }
+  }
+
+  function displayHistory() {
+    const history = document.getElementById("history");
+    history.replaceChildren();
+
+    records.forEach(function(record) {
+      const row = history.insertRow();
+
+      [
+        record.date,
+        record.level,
+        record.shots + "/10",
+        record.accuracy + "%"
+      ].forEach(function(value) {
+        row.insertCell().textContent = value;
+      });
+    });
+  }
+
+  function clearHistory() {
+    if (!confirm("Delete all your shooting records?")) return;
+
+    records = [];
+    const saved = storeRecords();
+    displayHistory();
+
+    if (saved) {
+      document.getElementById("status").textContent =
+        "Shooting history cleared.";
+    }
+  }
+
+  displayHistory();
+</script>
+
+</body>
+</html>
